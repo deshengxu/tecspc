@@ -17,6 +17,11 @@ eggs/
 .eggs/
 lib/
 lib64/
+data/
+png/
+png2/
+png3/
+test*.py
 parts/
 sdist/
 var/
