@@ -165,7 +165,7 @@ if __name__=='__main__':
     logger = setup_logger()
 
     curdir=os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-    png_dir = os.path.join(curdir,"..","png2")
+    png_dir = os.path.join(curdir,"..","png")
     if not os.path.exists(png_dir):
         os.makedirs(png_dir)
 
