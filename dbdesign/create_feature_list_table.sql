@@ -4,6 +4,7 @@
 
 CREATE TABLE Feature_List
 (
+  ID SERIAL Primary Key,
   TCPN text NOT NULL,
   TCPN_REV text,
   INSPECTION_DOCUMENT_NAME text,
