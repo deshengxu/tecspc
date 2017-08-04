@@ -20,6 +20,12 @@ CREATE TABLE Feature
   UCL real,
   LSL real,
   USL real,
+  MEAN real,
+  STD real,
+  boundmin real,
+  boundmax real,
+  edgemin real,
+  edgemax real,
   PASSRATE real,
   PICTURENAME text
 );
