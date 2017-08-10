@@ -3,7 +3,6 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 	var thisWidget = this;
 	var backendObjKeyword;
 	var clickIdentifyClass = "FloatingMarkerClickClass";
-	var rootIdentifyClass = "FloatingMarkerRootClass";
 
 	this.renderHtml = function () {
 		// return any HTML you want rendered for your widget
@@ -59,11 +58,11 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 			dataRows = updatePropertyInfo.ActualDataRows;
 			TW.log.warn("dataRows:"+dataRows.length);
 			document.getElementById(thisWidget.jqElementId).style.visibility="visible";
-			removeExistingElement(rootIdentifyClass);
+			removeExistingElement();
 			for(var index=0;index<dataRows.length;index++){
 				var row=dataRows[index];
 				TW.log.warn("we are talking about:"+index);
-				//TW.log.warn("can we print:"+row);
+				TW.log.warn("can we print:"+row);
 				//$.each(row,function(key, value){
 				//	TW.log.warn("Key:"+key+"  Value:"+value);
 				//})
@@ -72,29 +71,39 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 			document.getElementById(thisWidget.jqElementId).style.visibility="hidden";
 			//valueElem.text(updatePropertyInfo.SinglePropertyValue);
 			//this.setProperty('FloatingMarkers Property', updatePropertyInfo.SinglePropertyValue);
-			moveImageBack(thisWidget.jqElementId, backendObjKeyword);
+			MoveImageBack(thisWidget.jqElementId, backendObjKeyword);
+			//binding click event
+			//var clickIdentity = "#" + clickIdentifyClass;
+			// TW.log.warn("Start to bind event to:"+clickIdentity);
+
+			// $('body').on('click', clickIdentity, function(){
+			// 	console.log("Oh Yeh!!!");
+			// 	TW.log.warn("Oh Yeah! from TW");
+			// 	TW.log.warn("Update Property->$(this).id:"+$(this).id);
+			// })
+			TW.log.warn("Event Added to new objects in updateProperty for test 3");
 		}
 	};
 
-	function moveImageBack(CurrentID, keyword){
+	function MoveImageBack(CurrentID, keyword){
 		TW.log.warn("CurrentID:"+ CurrentID+" keyword:"+keyword);
 
 		var referenceObj = document.getElementById(CurrentID);
 		var children=referenceObj.parentNode.parentNode.children;
 		for(var i=0;i<children.length;i++){
 			var child = children[i];
-			TW.log.warn("moveImageBack id:"+child.id);
+			TW.log.warn("MoveImageBack id:"+child.id);
 			if(child.id.indexOf(keyword)>-1){
 				child.style.zIndex = -1;
 				return;
 			}
 		}
-	}
+	};
 
-	function removeExistingElement(rootIdentifyClass){
-		var existingList = document.getElementsByClassName(rootIdentifyClass);
-		TW.log.warn("Start to remove..."+existingList.length+" class:"+ rootIdentifyClass);
-		for(var index=existingList.length-1;index>=0;index--){
+	function removeExistingElement(){
+		var existingList = document.getElementsByClassName(clickIdentifyClass);
+		TW.log.warn("Start to remove..."+existingList.length);
+		for(var index=0;index<existingList.length;index++){
 			var oneElement=existingList[index];
 			if(oneElement){
 				TW.log.warn("Going to remove:"+oneElement.id);
@@ -103,7 +112,6 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 		}
 		TW.log.warn("done removeExistingElement")
 	};
-
 
 	function buildHtml(IDValue, Feature, XPosition, YPosition, CurrentID){
 		//<div id="root_floatingmarkers-11-bounding-box" class="widget-bounding-box nonresponsive" style="top: 10px; left: 10px; width: 50px; height: 50px; z-index: 1510;">
@@ -123,16 +131,19 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 		var span = document.createElement("span");
 		span.innerHTML = Feature;
 		var divContent = document.createElement("div");
-		divContent.className = referenceObj.className + " " + clickIdentifyClass;
+		divContent.className = referenceObj.className;
+		divContent.className += (" " + clickIdentifyClass);
 		divContent.id = referenceObj.id + specialTag;
 		divContent.style = referenceObj.style;
 		divContent.style.visibility = "visible";
+		//divContent.IDValue = IDValue;
+		//divContent.Feature = Feature;
 
 		divContent.appendChild(span);
 
 		var divRoot = document.createElement("div");
 		divRoot.id=referenceObj.parentNode.id+specialTag;
-		divRoot.className = referenceObj.parentNode.className + " " + rootIdentifyClass;	//for easy identify when it is needed to delete.
+		divRoot.className = referenceObj.parentNode.className;
 		divRoot.style = referenceObj.parentNode.style;
 		divRoot.style.top = "" + Math.round(YPosition) + "px";
 		divRoot.style.left = "" + Math.round(XPosition) + "px";
@@ -142,5 +153,10 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 		divRoot.style.visibility = "visible";
 		divRoot.appendChild(divContent);
 		referenceObj.parentNode.parentNode.appendChild(divRoot);
+		divContent.onclick=function(this){
+			TW.log.warn("Onclick parameters:("+this.getAttribute("IDValue+")+"("+this.getAttribute("Feature+")+")");
+			TW.log.warn("on click from DivContent");
+			console.log("Onclick parameters:("+this.getAttribute("IDValue+")+"("+this.getAttribute("Feature+")+")");
+		};
 	};
 };
