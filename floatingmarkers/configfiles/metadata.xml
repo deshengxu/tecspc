@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <Entities>
     <ExtensionPackages>
-        <ExtensionPackage dependsOn="" description="" minimumThingWorxVersion="8.0.0" name="floatingmarkers" packageVersion="0.0.1" vendor="Desheng Xu"> 
+        <ExtensionPackage dependsOn="" description="" minimumThingWorxVersion="7.3.0" name="floatingmarkers" packageVersion="0.0.2" vendor="Desheng Xu"> 
         </ExtensionPackage>
     </ExtensionPackages>
     <Widgets>

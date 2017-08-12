@@ -73,6 +73,34 @@ TW.IDE.Widgets.floatingmarkers = function () {
                     'baseType': 'NUMBER',
                     'defaultValue': 480
 				},
+                'selectedID': {
+                    'isBindingSource': true,
+                    'isVisible': true,
+                    'description': 'ID value of selected marker',
+                    'baseType': 'INTEGER',
+                    'defaultValue': -1
+				},
+				'selectedText': {
+                    'isBindingSource': true,
+                    'isVisible': true,
+                    'description': 'TEXT of selected marker',
+                    'baseType': 'STRING',
+                    'defaultValue': ''
+				},
+				'selectedXPos': {
+                    'isBindingSource': true,
+                    'isVisible': true,
+                    'description': 'XPos of selected marker',
+                    'baseType': 'NUMBER',
+                    'defaultValue': 0
+				},
+				'selectedYPos': {
+                    'isBindingSource': true,
+                    'isVisible': true,
+                    'description': 'ID value of selected marker',
+                    'baseType': 'NUMBER',
+                    'defaultValue': 0
+				},
 				'Width': {
                     'defaultValue': 50
                 },
@@ -89,7 +117,8 @@ TW.IDE.Widgets.floatingmarkers = function () {
 
 	this.widgetEvents = function () {
         return {
-        	'Clicked': {}
+			'Clicked': {},
+			'SelectedChange':{}
         };
 	};
 	

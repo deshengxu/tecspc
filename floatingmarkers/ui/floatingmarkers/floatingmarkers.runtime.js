@@ -2,8 +2,9 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 	var valueElem;
 	var thisWidget = this;
 	var backendObjKeyword;
-	var clickIdentifyClass = "FloatingMarkerClickClass";
-	var rootIdentifyClass = "FloatingMarkerRootClass";
+	var clickIdentifyClass = "FMClick";
+	var rootIdentifyClass = "FMRoot";
+	var idFieldName, featureFeildName,xPosFieldName, yPosFieldName;
 
 	this.renderHtml = function () {
 		// return any HTML you want rendered for your widget
@@ -11,13 +12,22 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 		// has set, you can use this.getProperty(propertyName). In
 		// this example, we'll just return static HTML
 		TW.log.warn("renderHtml:"+thisWidget.jqElementId);
+		clickIdentifyClass += thisWidget.jqElementId;	//in order to avoid multiple instance of widget.
+		rootIdentifyClass += thisWidget.jqElementId;	//same as above.
 		backendObjKeyword =this.getProperty('ImageElementName');
+		idFieldName = this.getProperty('IDField');	//which field from data plays IDValue;
+		featureFeildName = this.getProperty('TextField');
+		xPosFieldName = this.getProperty('XposField');
+		yPosFieldName = this.getProperty('YposField');
+
+
 		return 	'<div class="widget-content widget-floatingmarkers circle" id="' +
 			thisWidget.jqElementId + '" >' +
 					'<span id="thisismytest" idvalue="123">' + backendObjKeyword + '</span>' +
 				'</div>';
 	};
 
+	
 	this.afterRender = function () {
 		// NOTE: this.jqElement is the jquery reference to your html dom element
 		// 		 that was returned in renderHtml()
@@ -46,10 +56,10 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 		var span = $(this).find("span");
 		TW.log.warn("After Render span attr id:"+span.attr("id"));
 		TW.log.warn("After Render span attr idvalue:"+span.attr("idvalue"));
-		TW.log.warn("Document level:"+document.getElementById(thisWidget.jqElementId).getAttribute("class"));
-		TW.log.warn("Document parentnode level:"+document.getElementById(thisWidget.jqElementId).parentNode.parentNode.getAttribute("class"));
-		TW.log.warn("Document parentnode level:"+document.getElementById(thisWidget.jqElementId).parentNode.parentNode.getAttribute("id"));
-		TW.log.warn("Document parentnode level:"+document.getElementById(thisWidget.jqElementId).parentNode.parentNode.getAttribute("style"));
+		TW.log.warn("Document level:document.getElementById(thisWidget.jqElementId).getAttribute('class')->"+document.getElementById(thisWidget.jqElementId).getAttribute("class"));
+		TW.log.warn("Document parentnode level:class->"+document.getElementById(thisWidget.jqElementId).parentNode.parentNode.getAttribute("class"));
+		TW.log.warn("Document parentnode level:id->"+document.getElementById(thisWidget.jqElementId).parentNode.parentNode.getAttribute("id"));
+		TW.log.warn("Document parentnode level:style->"+document.getElementById(thisWidget.jqElementId).parentNode.parentNode.getAttribute("style"));
 	};
 
 	// this is called on your widget anytime bound data changes
@@ -58,7 +68,7 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 		if (updatePropertyInfo.TargetProperty === 'Data') {
 			dataRows = updatePropertyInfo.ActualDataRows;
 			TW.log.warn("dataRows:"+dataRows.length);
-			document.getElementById(thisWidget.jqElementId).style.visibility="visible";
+			//document.getElementById(thisWidget.jqElementId).style.visibility="visible";
 			removeExistingElement(rootIdentifyClass);
 			for(var index=0;index<dataRows.length;index++){
 				var row=dataRows[index];
@@ -67,12 +77,15 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 				//$.each(row,function(key, value){
 				//	TW.log.warn("Key:"+key+"  Value:"+value);
 				//})
-				buildHtml(row['ID'],row['Feature'],row['XPosition'],row['YPosition'], thisWidget.jqElementId);
+				buildHtml(row[idFieldName],row[featureFeildName],row[xPosFieldName],row[yPosFieldName], thisWidget.jqElementId);
 			}
 			document.getElementById(thisWidget.jqElementId).style.visibility="hidden";
 			//valueElem.text(updatePropertyInfo.SinglePropertyValue);
 			//this.setProperty('FloatingMarkers Property', updatePropertyInfo.SinglePropertyValue);
 			moveImageBack(thisWidget.jqElementId, backendObjKeyword);
+
+			//setup IDValue to default
+			setupSelectedIDValue(-1);
 		}
 	};
 
@@ -104,6 +117,30 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 		TW.log.warn("done removeExistingElement")
 	};
 
+	function cleanClickedClass(clickIdentifyClass){
+		var existingList = document.getElementsByClassName(clickIdentifyClass);
+		TW.log.warn("Start to remove clicked class..."+existingList.length+" class:"+ clickIdentifyClass);
+		for(var index=existingList.length-1;index>=0;index--){
+			var oneElement=existingList[index];
+			if(oneElement){
+				TW.log.warn("Going to remove clicked class from:"+oneElement.id);
+				oneElement.classList.remove("clicked");
+			}
+		}
+		TW.log.warn("done remove clicked class from ExistingElement")
+	}
+
+	function setupSelectedValue(selectedID,selectedText,selectedXPos,selectedYPos){
+		//a IDValue is selected, this will update IDValue as source of binding
+		//and trigger event;
+		TW.log.warn("selected value:("+selectedID+")("+selectedText+")("+selectedText+")("+selectedYPos+")");
+		thisWidget.setProperty("selectedID", selectedID);
+		thisWidget.setProperty("selectedText", selectedText);
+		thisWidget.setProperty("selectedXPos", selectedXPos);
+		thisWidget.setProperty("selectedYPos", selectedYPos);
+		
+		thisWidget.jqElement.triggerHandler('SelectedChange');
+	}
 
 	function buildHtml(IDValue, Feature, XPosition, YPosition, CurrentID){
 		//<div id="root_floatingmarkers-11-bounding-box" class="widget-bounding-box nonresponsive" style="top: 10px; left: 10px; width: 50px; height: 50px; z-index: 1510;">
@@ -127,7 +164,10 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 		divContent.id = referenceObj.id + specialTag;
 		divContent.style = referenceObj.style;
 		divContent.style.visibility = "visible";
-
+		divContent.setAttribute('selectedID', IDValue);
+		divContent.setAttribute('selectedText', Feature);
+		divContent.setAttribute('selectedXPos', XPosition);
+		divContent.setAttribute('selectedYPos', YPosition);
 		divContent.appendChild(span);
 
 		var divRoot = document.createElement("div");
@@ -142,5 +182,22 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 		divRoot.style.visibility = "visible";
 		divRoot.appendChild(divContent);
 		referenceObj.parentNode.parentNode.appendChild(divRoot);
+		divContent.onclick=function(){
+			TW.log.warn("Onclick parameters:(id:"+this.getAttribute("id")+"("+this.getAttribute("class+")+")");
+			cleanClickedClass(clickIdentifyClass);
+			this.classList.add("clicked");
+			TW.log.warn("add clicked class to DivContent");
+			TW.log.warn("clicked IDValue is:"+this.getAttribute('selectedID'));
+			setupSelectedValue(this.getAttribute('selectedID'),this.getAttribute('selectedText'),this.getAttribute('selectedXPos'),this.getAttribute('selectedYPos'));
+			TW.log.warn("trigger done");
+		};
 	};
+
+	this.beforeDestroy = function(){
+			try{
+				thisWidget.jqElement.unbind();
+			}catch(err){
+				TW.log.error('Error in beforeDestroy', err);
+			}
+		}
 };
