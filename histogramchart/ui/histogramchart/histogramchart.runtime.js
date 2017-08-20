@@ -47,58 +47,11 @@ TW.Runtime.Widgets.histogramchart= function () {
 	};
 
 	var thisWidget = this,
-            liveData,
-            widgetProperties,
-            widgetContainer,
-            widgetContainerId,
-            chartContainer,
-            chartContainerId,
-            chart,
-            emptyChart,
-            purge,
-            chartData,
-            chartStyles = {},
-            returnData = [],
-            dataLabels = [],
-            dataRows,
-            dataRowsNum,
-            valueUnderMouse = {},
-            clickedRowId,
-            selectedRowIndices,
-            chartTitleTextSizeClass,
-            chartTitleStyle,
-            stackable = true,
-            isResponsive = false,
-            isInHiddenTab = false,
-            isInHiddenBrowserTab,
-            barLabels,
-			resizeHandler;
+            chartTitleTextSizeClass;
 		thisWidget.processing = false;
         thisWidget.UseRawData = thisWidget.getProperty('UseRawData');
         thisWidget.title = thisWidget.getProperty('Title');
-        thisWidget.titleAlignment = thisWidget.getProperty("ChartTitleAlignment");
-        thisWidget.xAxisLabel = thisWidget.getProperty('X-AxisLabel');
-        thisWidget.yAxisLabel = thisWidget.getProperty('Y-AxisLabel');
-        thisWidget.xAxisField = thisWidget.getProperty('X-AxisField');
-        thisWidget.showAxisLabels = thisWidget.getProperty('ShowAxisLabels');
-        thisWidget.showXAxisLabels = Boolean(thisWidget.getProperty('ShowX-AxisLabels'));
-        thisWidget.showYAxisLabels = Boolean(thisWidget.getProperty('ShowY-AxisLabels'));
-        // don't set these to object props they are dynamic!
-        thisWidget.showLegend = thisWidget.getProperty('ShowLegend');
-        thisWidget.labelAngle = thisWidget.getProperty('LabelAngle')*-1;
-        thisWidget.xAxisIntervals = thisWidget.getProperty('X-AxisIntervals');
-        thisWidget.xAxisMinMaxVisible = Boolean(thisWidget.getProperty('ShowX-AxisMinMax'));
-        thisWidget.yAxisMinimum = thisWidget.getProperty('Y-AxisMinimum')*1;
-        thisWidget.yAxisMaximum = thisWidget.getProperty('Y-AxisMaximum')*1;
-        thisWidget.autoScale = Boolean(thisWidget.getProperty('AutoScale'));
-        thisWidget.enableHover = Boolean(thisWidget.getProperty('EnableHover'));
-        thisWidget.showValues = Boolean(thisWidget.getProperty('ShowValues'));
-        thisWidget.yAxisIntervals = thisWidget.getProperty('Y-AxisIntervals');
-        thisWidget.precision = Math.max(thisWidget.getProperty('ShowValuesFormat'),0);
-		thisWidget.yAxisMinMaxVisible = thisWidget.getProperty('ShowY-AxisMinMax');
-		thisWidget.xAxisMinimum = thisWidget.getProperty('X-AxisMinimum')*1;
-        thisWidget.xAxisMaximum = thisWidget.getProperty('X-AxisMaximum')*1;
-        thisWidget.margins = thisWidget.getProperty('Margins');
+        
         thisWidget.width = thisWidget.getProperty('Width');
         thisWidget.height = thisWidget.getProperty('Height');
         thisWidget.zIndex = thisWidget.getProperty('Z-index');
@@ -112,13 +65,8 @@ TW.Runtime.Widgets.histogramchart= function () {
 		//			'<span class="histogramchart-property">' + this.getProperty('histogramchart Property') + '</span>' +
 		//		'</div>';
 
-		chartTitleStyle = TW.getStyleFromStyleDefinition(thisWidget.getProperty('ChartTitleStyle', 'DefaultChartStyle'));
-
 		chartTitleTextSizeClass = 'textsize-normal';
-		if (this.getProperty('ChartTitleStyle') !== undefined) {
-			chartTitleTextSizeClass = TW.getTextSizeClassName(chartTitleStyle.textSize);
-		}
-
+		
 		thisWidget.id = +thisWidget.getProperty('Id');
 		canvasID = thisWidget.jqElementId + "-canvas";
 		windowCanvasName = thisWidget.jqElementId +"_canvas_var";
@@ -290,15 +238,15 @@ TW.Runtime.Widgets.histogramchart= function () {
 
 		canvasConfig['options'] = options;
 		resetUpdatedFigures();
-		TW.log.warn("canvasConfig is:"+(canvasConfig));
+		TW.log.debug("canvasConfig is:"+(canvasConfig));
 	};
 
 	exportCanvasConfig=function(){
 		for(var index=0;index<canvasConfig['data']['datasets'].length;index++){
-			TW.log.warn("index:"+index+" label:"+canvasConfig['data']['datasets'][index]['label']);
-			TW.log.warn("Data:"+JSON.stringify(canvasConfig['data']['datasets'][index]['data']));
+			TW.log.debug("index:"+index+" label:"+canvasConfig['data']['datasets'][index]['label']);
+			TW.log.debug("Data:"+JSON.stringify(canvasConfig['data']['datasets'][index]['data']));
 		}
-		TW.log.warn("Options:"+JSON.stringify(canvasConfig['options']));
+		TW.log.debug("Options:"+JSON.stringify(canvasConfig['options']));
 	}
 
 	this.afterRender = function () {
@@ -310,25 +258,24 @@ TW.Runtime.Widgets.histogramchart= function () {
 		// update that DOM element based on the property value that the user set
 		// in the mashup builder
 		//valueElem.text(this.getProperty('histogramchart Property'));
-		TW.log.warn("after Render.");
-		TW.log.warn("find Canvas?:"+document.getElementById(canvasID));
+		TW.log.debug("after Render:find Canvas?:"+document.getElementById(canvasID));
 
 		thisWidget.drawChart();
-		TW.log.warn("Windows Canvas Var:"+windowCanvasName+"--canvasID:"+canvasID);
-		//TW.log.warn("CanvasConfig:"+JSON.stringify(canvasConfig));
+		TW.log.debug("Windows Canvas Var:"+windowCanvasName+"--canvasID:"+canvasID);
+		//TW.log.debug("CanvasConfig:"+JSON.stringify(canvasConfig));
 	};
 
 	this.drawChart=function(){
 		var ctx = document.getElementById(canvasID).getContext("2d");
-		TW.log.warn("context object in drawChart:"+ctx);
+		TW.log.debug("context object in drawChart:"+ctx);
 
 		//this should be optimized in order to save memory.
 		if(chartObject===undefined || chartObject === null){
 			chartObject = new Chart(ctx, canvasConfig);
-			TW.log.warn("Chart Object created in drawChart:"+ chartObject);
+			TW.log.debug("Chart Object created in drawChart:"+ chartObject);
 		}else{
 			chartObject.update();
-			TW.log.warn("Chart Object updated in drawChart:"+ chartObject);
+			TW.log.debug("Chart Object updated in drawChart:"+ chartObject);
 		}
 		
 		
@@ -342,30 +289,31 @@ TW.Runtime.Widgets.histogramchart= function () {
 			for(var index=0;index<dataRows.length;index++){
 				dataArray.push(dataRows[index][rawvalue_fieldname]);
 			}
-			TW.log.warn("Data is updated:" + dataArray.length);
+			TW.log.debug("Data is updated:" + dataArray.length);
 		}
 
 		if (updatePropertyInfo.TargetProperty === 'Title'){
 			thisWidget.title = updatePropertyInfo.SinglePropertyValue;
 			this.setProperty('Title', updatePropertyInfo.SinglePropertyValue);
 			//thisWidget.title = thisWidget.getProperty('Title');
+			TW.log.debug("Title updated:"+thisWidget.title);
 		}
 		if (updatePropertyInfo.TargetProperty === 'Nominal') {
 			nominal = updatePropertyInfo.SinglePropertyValue;
 			this.setProperty('Nominal', nominal);
-			TW.log.warn("Nominal updated:"+nominal);
+			TW.log.debug("Nominal updated:"+nominal);
 		}
 
 		if(updatePropertyInfo.TargetProperty === 'UTL'){
 			utl = updatePropertyInfo.SinglePropertyValue;
 			this.setProperty('UTL', utl);
-			TW.log.warn("UTL updated:"+utl);
+			TW.log.debug("UTL updated:"+utl);
 		}
 
 		if(updatePropertyInfo.TargetProperty === 'LTL'){
 			ltl = updatePropertyInfo.SinglePropertyValue;
 			this.setProperty('LTL', ltl);
-			TW.log.warn("LTL updated:"+ltl);
+			TW.log.debug("LTL updated:"+ltl);
 		}
 	};
 
@@ -379,39 +327,49 @@ TW.Runtime.Widgets.histogramchart= function () {
 
 	this.serviceInvoked = function(serviceName){
 		TW.log.info("Service Name:", serviceName);
+		
 		if(serviceName === 'ApplyData'){
+			var isError=false;
 			if(rawvalue_fieldname===undefined || rawvalue_fieldname===''){
-				thisWidget.buildDefaultConfig();
-				TW.log.warn("rawvalue_fieldname is not mapped");
-				return;
+				//thisWidget.buildDefaultConfig();
+				TW.log.debug("rawvalue_fieldname is not mapped");
+				isError=true;
 			}
 			
 			if(nominal === undefined || utl === undefined || ltl === undefined
 				|| dataArray === undefined){
-				thisWidget.buildDefaultConfig();
-				TW.log.warn("nomial:("+nominal+"),utl:("+utl+"),ltl:("+ltl+")");
-				TW.log.warn("dataRows:("+dataArray+")");
-				return;
+				//thisWidget.buildDefaultConfig();
+				TW.log.debug("nomial:("+nominal+"),utl:("+utl+"),ltl:("+ltl+")");
+				TW.log.debug("dataRows:("+dataArray+")");
+				isError = true;
 			}
 
-			if(dataArray.length===0 || dataArray.length===1){
-				thisWidget.buildDefaultConfig();
-				TW.log.warn("dataArray has 0 or 1 length:" + dataArray.length);
-				return;
+			if(dataArray.length===0 ){
+				//thisWidget.buildDefaultConfig();
+				TW.log.debug("dataArray has 0 length:" + dataArray.length);
+				isError = true;
 			}
 
-			calculationResult = thisWidget.calculateHistogram();
+			if(isError){
+				calculationResult = thisWidget.cleanDefaultResult();
+			}else{
+				calculationResult = thisWidget.calculateHistogram();
+			}
 			setUpdatedFigures(calculationResult['count'],
 				calculationResult['mean'],
 				calculationResult['std'],
 				calculationResult['cp'],
 				calculationResult['cp']);
 
-			exportCanvasConfig();
-			thisWidget.setupChart(calculationResult);
+			//exportCanvasConfig();
+			if(isError){
+				thisWidget.cleanDefaultConfig(calculationResult);
+			}else{
+				thisWidget.setupChart(calculationResult);
+			}
 			thisWidget.updateSourcingBindingProperties(calculationResult);
 			//thisWidget.drawChart();
-			exportCanvasConfig();
+			//exportCanvasConfig();
 			chartObject.update();
 
 			//add figures
@@ -436,7 +394,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 		// 	"edgemin":edgemin,
 		// 	"edgemax":edgemax
 		//	"count":		//TotalCount
-		TW.log.warn("updateSourcingBindingProperties started.")
+		TW.log.debug("updateSourcingBindingProperties started.")
 		thisWidget.setProperty('mean',calculationResult['mean']);
 		thisWidget.setProperty('std', calculationResult['std']);
 		thisWidget.setProperty('Cp',calculationResult['cp']);
@@ -447,7 +405,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 		thisWidget.setProperty('LCL',calculationResult['lcl']);
 		thisWidget.setProperty('TotalCount',calculationResult['count']);
 		
-		TW.log.warn("updateSourcingBindingProperties ended.")
+		TW.log.debug("updateSourcingBindingProperties ended.")
 	};
 
 	this.setupChart = function(calculationResult){
@@ -503,6 +461,53 @@ TW.Runtime.Widgets.histogramchart= function () {
 		);
 	}
 
+	this.cleanDefaultResult=function(){
+		var calculationResult = {
+			'mean': Number.NaN,
+			'std' : Number.NaN,
+			'cp' : Number.NaN,
+			'cpk' : Number.NaN,
+			'usl' : Number.NaN,
+			'lsl' : Number.NaN,
+			'ucl' : Number.NaN,
+			'lcl' : Number.NaN,
+			'count': 0,
+			"minvalue": 0.0,
+			"maxvalue": 1.0,
+			"boundmax":0.0,
+			"boundmin":1.0,
+			'edgemin': 0.0,
+			'edgemax': 1.0,
+			'bartop' : 0.5/1.1
+		};
+		return calculationResult;
+	}
+
+	this.cleanDefaultConfig=function(calculationResult){
+		//in case wrong data, for example: 0 dataset.
+		//drawing will be cleaned up.
+		// thisWidget.setProperty('mean',calculationResult['mean']);
+		// thisWidget.setProperty('std', calculationResult['std']);
+		// thisWidget.setProperty('Cp',calculationResult['cp']);
+		// thisWidget.setProperty('Cpk',calculationResult['cpk']);
+		// thisWidget.setProperty('USL',calculationResult['usl']);
+		// thisWidget.setProperty('LSL',calculationResult['lsl']);
+		// thisWidget.setProperty('UCL',calculationResult['ucl']);
+		// thisWidget.setProperty('LCL',calculationResult['lcl']);
+		// thisWidget.setProperty('TotalCount',calculationResult['count']);
+		
+
+		thisWidget.updateDefaultConfig(
+			[],
+			[],
+			[],
+			[],
+			[],
+			[],
+			calculationResult
+		)
+	}
+
 	this.updateDefaultConfig=function(
 			normData,
 			histogramData,
@@ -514,7 +519,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 	){
 		for(var index=0;index<canvasConfig['data']['datasets'].length;index++){
 			var label = canvasConfig['data']['datasets'][index]['label'];
-			TW.log.warn("processing label:"+label);
+			TW.log.debug("processing label:"+label);
 			if(label=="Norm"){
 				canvasConfig['data']['datasets'][index]['data'] = normData;
 			}
@@ -548,13 +553,14 @@ TW.Runtime.Widgets.histogramchart= function () {
 		//round up to next level of percentage to aboiv line is too close
 		//0.03 -> 0.05, 0.05->0.05
 		var returnValue = (Math.ceil(topValue * 20.0) / 20.0).toFixed(2);
-		TW.log.warn("Input topValue:"+topValue+ "  output:"+returnValue);
+		TW.log.debug("Input topValue:"+topValue+ "  output:"+returnValue);
 		return returnValue;
 	}
 	this.buildNormData = function(xmin,xmax,mean,sigma, ymax, steps){
 		var normData = [];
 		// CreateInfoTableFromDataShape(infoTableName:STRING("InfoTable"), dataShapeName:STRING):INFOTABLE(MES.U090GeneralValueXYDatashape)
-		if(Math.abs(sigma)<0.0000001){
+		if(!isFinite(sigma) || Math.abs(sigma)<0.000000001){
+			//if sigma is NaN or Infinity (+,-) or too small
 			return normData;
 		}
 		var step = (xmax-xmin)/steps;
@@ -586,6 +592,9 @@ TW.Runtime.Widgets.histogramchart= function () {
 	}
 	this.buildVerticalLineData=function(singleValue, topValue){
 		var verticalLineDataset = [];
+		if(!isFinite(singleValue)){
+			return verticalLineDataset;
+		}
 		var point1 = {
 			'x': singleValue,
 			'y': 0.0
@@ -600,8 +609,8 @@ TW.Runtime.Widgets.histogramchart= function () {
 		return verticalLineDataset;
 	}
 	this.buildHistogramData=function(bins,barpercentage){
-		TW.log.warn("bins as input:"+JSON.stringify(bins));
-		TW.log.warn("barpercentage as input:"+JSON.stringify(barpercentage));
+		TW.log.debug("bins as input:"+JSON.stringify(bins));
+		TW.log.debug("barpercentage as input:"+JSON.stringify(barpercentage));
 		
 		let histogramDataset=[];
 
@@ -653,38 +662,48 @@ TW.Runtime.Widgets.histogramchart= function () {
 		total = dataArray.reduce(function(preValue,elem){
 			return preValue + elem;
 		}, 0.0);
-		TW.log.warn("Total:"+total);
+		TW.log.debug("Total:"+total);
 
 		//using sort to get min and max value of data
 		dataArray = dataArray.sort(function(a,b){return a-b});
 		minvalue = dataArray[0];
 		maxvalue = dataArray[dataArray.length-1];
-		TW.log.warn("Min:"+minvalue + "  Max:"+maxvalue);
+		TW.log.debug("Min:"+minvalue + "  Max:"+maxvalue);
 
 		//mean 
 		mean = total / (dataArray.length);
-		TW.log.warn("Mean:"+mean);
+		TW.log.debug("Mean:"+mean);
 
 		//calculate std deviation
 		//Math.pow((elem - mean),2)
-		var stdtotal = dataArray.map(elem => Math.pow((elem-mean),2)).reduce(
-			function(preValue,elem){
-				return preValue + elem;
-			}, 0.0
-		);
-		std = Math.sqrt(stdtotal / (dataArray.length-1));	//ddof = 1
-		TW.log.warn("STD:"+std);
+		if(dataArray.length===1){
+			std=Infinity;
+		}else{
+			var stdtotal = dataArray.map(elem => Math.pow((elem-mean),2)).reduce(
+				function(preValue,elem){
+					return preValue + elem;
+				}, 0.0
+			);
+			std = Math.sqrt(stdtotal / (dataArray.length-1));	//ddof = 1
+		}
+		
+		TW.log.debug("STD:"+std);
 
 		usl = +nominal + +utl;
 		lsl = +nominal + +ltl;
-		TW.log.warn("usl:"+usl+"  lsl:"+lsl);
+		TW.log.debug("usl:"+usl+"  lsl:"+lsl);
 
-		if(std>0.000000001){
+		if(isFinite(std) && std>0.000000001){
 			//none zero
 			cp = (usl-lsl)/(std * 6.0);
 			cpk = Math.min( (usl-mean)/(3.0 * std), (mean-lsl)/(3.0 * std));
 			ucl = mean + 3.0 * std;
 			lcl = mean - 3.0 * std;
+		}else{
+			cp = 0.0;
+			cpk = 0.0;
+			ucl = Infinity;
+			lcl = Infinity;
 		}
 		// boundmax=Math.max(ucl,usl,maxvalue);
 		// boundmin=Math.min(lcl,lsl,minvalue);
@@ -693,8 +712,8 @@ TW.Runtime.Widgets.histogramchart= function () {
 
 		var edgemin=boundmin-(boundmax-boundmin)*0.05;
 		var edgemax=boundmax+(boundmax-boundmin)*0.05;	// in order to avoid annoying space at the end
-		TW.log.warn("boundmax:"+boundmax+" boundmin:"+boundmin);
-		TW.log.warn("cp:"+cp+" cpk:"+cpk+" ucl:"+ucl+" lcl:"+lcl);
+		TW.log.debug("boundmax:"+boundmax+" boundmin:"+boundmin);
+		TW.log.debug("cp:"+cp+" cpk:"+cpk+" ucl:"+ucl+" lcl:"+lcl);
 
 		var result = {
 			"mean": mean,
@@ -716,7 +735,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 
 		//merge two result together.
 		result = Object.assign({}, result, thisWidget.calculateBins(boundmin, boundmax));
-		TW.log.warn("result of merged result:"+JSON.stringify(result));
+		TW.log.debug("result of merged result:"+JSON.stringify(result));
 
 		return result;
 	}
@@ -725,7 +744,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 		//calculate bins and counts.
 		var bars = dataArray.length>25? 8: 4;
 		var hit = bars==8? hit8: hit4;	//which hit function will be used.
-		TW.log.warn("bars:"+bars+" hit:"+hit);
+		TW.log.debug("bars:"+bars+" hit:"+hit);
 
 		//if measurement > 25, then use 8 bars (9 bins)
 		//otherwise, use 4 bars (5 bins)
@@ -735,7 +754,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 		for(let index=0;index<bars+1;index++){
 			bins[index] = boundmin + index * step;
 		}
-		TW.log.warn("boundmin:"+boundmin+" boundmax:"+boundmax+" bins:"+JSON.stringify(bins));
+		TW.log.debug("boundmin:"+boundmin+" boundmax:"+boundmax+" bins:"+JSON.stringify(bins));
 
 		var barcounts=[];
 		for(let index=0;index<bars;index++){
@@ -746,11 +765,11 @@ TW.Runtime.Widgets.histogramchart= function () {
 			barcounts[hit(bins, dataArray[index])] += 1;
 		}
 
-		TW.log.warn("barcounts:"+JSON.stringify(barcounts));
+		TW.log.debug("barcounts:"+JSON.stringify(barcounts));
 
 		var barpercentage = barcounts.map( elem => elem * 1.0 / dataArray.length);
 
-		TW.log.warn("barpercentage:"+JSON.stringify(barpercentage));
+		TW.log.debug("barpercentage:"+JSON.stringify(barpercentage));
 
 		var bartop = barpercentage.reduce(function(preValue,elem){
 			return elem>preValue? elem:preValue;
@@ -762,7 +781,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 			"barpercentage": barpercentage,
 			"bartop": bartop
 		}
-		TW.log.warn("final result from bins calculation:"+JSON.stringify(result));
+		TW.log.debug("final result from bins calculation:"+JSON.stringify(result));
 		return result;
 	}
 	
@@ -823,13 +842,13 @@ TW.Runtime.Widgets.histogramchart= function () {
 	}
 
 	this.drawUpdatedFirgures = function() {
-		TW.log.warn("drawUpdatedFirgures");
+		TW.log.debug("drawUpdatedFirgures");
 		document.getElementById(thisWidget.jqElementId+"-titletext").innerHTML = Encoder.htmlEncode(thisWidget.title);
 		document.getElementById(thisWidget.jqElementId+'-figure-total-value').innerHTML=updatedTotalCount;
 		document.getElementById(thisWidget.jqElementId+'-figure-mean-value').innerHTML=updatedMean.toFixed(5);
 		document.getElementById(thisWidget.jqElementId+'-figure-std-value').innerHTML=updatedStd.toFixed(5);
 		document.getElementById(thisWidget.jqElementId+'-figure-cp-value').innerHTML=updatedCp.toFixed(5);
 		document.getElementById(thisWidget.jqElementId+'-figure-cpk-value').innerHTML=updatedCpk.toFixed(5);
-		TW.log.warn("drawUpdatedFirgures Ends");
+		TW.log.debug("drawUpdatedFirgures Ends");
 	}
 };
