@@ -1,0 +1,218 @@
+
+<!doctype html>
+<html>
+
+<head>
+    <title>Tooltip Hooks</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
+    <script src="../3rdpartylibrary/Chart.bundle.js"></script>
+    <script src="../3rdpartylibrary/utils.js"></script>
+    <style>
+    canvas {
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+    }
+    </style>
+</head>
+<body>
+    <div style="width:75%">
+        <canvas id="canvas"></canvas>
+    </div>
+    <button id="randomizeData">Randomize Data</button>
+    <script>
+        var color = Chart.helpers.color;
+        var scatterChartData = {
+            datasets: [{
+                label: "Distribution",
+                borderColor: window.chartColors.red,
+                backgroundColor: color(window.chartColors.red).alpha(0.2).rgbString(),
+                data: [{
+                    x: 1.0,
+                    y: 0.0,
+                }, {
+                    x: 1.5,
+                    y: 0.3,
+                }, {
+                    x: 2.0,
+                    y: 1.3,
+                }, {
+                    x: 3.3,
+                    y: 4.0,
+                }, {
+                    x: 5.0,
+                    y: 8.0,
+                }, {
+                    x: 6.5,
+                    y: 4.1,
+                }, {
+                    x: 7.0,
+                    y: 2.9,
+                }, {
+                    x: 8.0,
+                    y: 0.5,
+                }],
+                fill: false,
+                hitRadius: 0,
+                radius: 0
+            }, {
+                label: "Histogram",
+                borderColor: window.chartColors.blue,
+                backgroundColor: color(window.chartColors.blue).alpha(0.6).rgbString(),
+                data: [{
+                    x: 1.5,
+                    y: 0.0,
+                }, {
+                    x: 2.5,
+                    y: 0.0,
+                }, {
+                    x: 2.5,
+                    y: 5.0,
+                }, {
+                    x: 3.5,
+                    y: 5.0,
+                }, {
+                    x: 3.5,
+                    y: 2.2,
+                }, {
+                    x: 4.5,
+                    y: 2.2,
+                }, {
+                    x: 4.5,
+                    y: 0.0,
+                }, {
+                    x: 4.5,
+                    y: 3.0,
+                }, {
+                    x: 5.5,
+                    y: 3.0,
+                }, {
+                    x: 5.5,
+                    y: 0.0,
+                }, {
+                    x: 5.5,
+                    y: 3.9,
+                }, {
+                    x: 6.5,
+                    y: 3.9,
+                }, {
+                    x: 6.5,
+                    y: 0.0,
+                }, {
+                    x: 6.5,
+                    y: 2.2,
+                }, {
+                    x: 7.5,
+                    y: 2.2,
+                }, {
+                    x: 7.5,
+                    y: 0.0,
+                }],
+                fill: true,
+                lineTension: 0,
+                pointRadius: 0
+            },
+            {
+                label: "Mean",
+                borderColor: window.chartColors.yellow,
+                backgroundColor: color(window.chartColors.red).alpha(0.2).rgbString(),
+                data: [{
+                    x: 5.0,
+                    y: 0.0,
+                }, {
+                    x: 5.0,
+                    y: 9.0,
+                }],
+                fill: false,
+                radius: 0,
+                lineTension: 0
+            },
+            {
+                label: "Nominal",
+                borderColor: window.chartColors.green,
+                backgroundColor: color(window.chartColors.red).alpha(0.2).rgbString(),
+                data: [{
+                    x: 4.4,
+                    y: 0.0,
+                }, {
+                    x: 4.4,
+                    y: 9.0,
+                }],
+                fill: false,
+                radius: 0,
+                lineTension: 0
+            },
+            {
+                label: "USL",
+                borderColor: window.chartColors.red,
+                backgroundColor: color(window.chartColors.red).alpha(0.5).rgbString(),
+                data: [{
+                    x: 7.8,
+                    y: 0.0,
+                }, {
+                    x: 7.8,
+                    y: 9.0,
+                }],
+                fill: false,
+                radius: 0,
+                lineTension: 0
+            },
+            {
+                label: "LSL",
+                borderColor: window.chartColors.red,
+                backgroundColor: color(window.chartColors.red).alpha(0.5).rgbString(),
+                data: [{
+                    x: 0.4,
+                    y: 0.0,
+                }, {
+                    x: 0.4,
+                    y: 9.0,
+                }],
+                fill: false,
+                radius: 0,
+                lineTension: 0
+            }
+        ]
+        };
+
+        window.onload = function() {
+            var ctx = document.getElementById("canvas").getContext("2d");
+            window.myScatter = Chart.Scatter(ctx, {
+                data: scatterChartData,
+                options: {
+                    title: {
+                        display: true,
+                        text: 'Histogram Chart with Fake Data'
+                    },
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    },
+                    scales: {
+                        xAxes: [{
+                            ticks: {
+                                max: 10.0,
+                                min: -1.0,
+                                stepSize: 2.5
+                            }
+                        }]
+                    }
+                }
+            });
+        };
+
+        document.getElementById('randomizeData').addEventListener('click', function() {
+            scatterChartData.datasets.forEach(function(dataset) {
+                dataset.data = dataset.data.map(function() {
+                    return {
+                        x: randomScalingFactor(),
+                        y: randomScalingFactor()
+                    };
+                });
+            });
+            window.myScatter.update();
+        });
+    </script>
+</body>
+
+</html>

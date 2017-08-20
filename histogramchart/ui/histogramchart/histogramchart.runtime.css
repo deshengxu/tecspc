@@ -1,0 +1,52 @@
+/* Place custom CSS styling for histogramchart widget at runtime in this file */
+
+.widget-histogramchart {
+    height: 100%;
+    width: 100%;
+}
+
+.figuretable {
+    width: 80%;
+    margin-left:10%; 
+    margin-right:10%;
+}
+.widget-chart-title-text{
+    font-size: 12px;
+    font-weight: bold;
+}
+.figure-value{
+    text-align:left;
+    width:9%;
+}
+.widget-histogramchart .histogramchart-content {
+    left: 0;
+    right: 0;
+}
+.histogramchart-content {
+    padding: .25em 1em .5em 1em;
+}
+
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+}
+
+@media screen and (min-width:0\0) {
+    .widget-histogramchart {
+        top: -1px;
+    }
+}
+
+/* optional zoom strip below chart */
+.nv-context{
+    margin-top:2.1em;
+}
+
+.widget-histogramchart .widget-layout .responsive > .outer-container > .widget-container {
+    height: auto;
+    width: auto;
+}
+
+canvas {
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+}

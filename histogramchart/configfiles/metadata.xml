@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Entities>
+    <ExtensionPackages>
+        <ExtensionPackage dependsOn="" description="" minimumThingWorxVersion="8.0.0" name="histogramchart" packageVersion="0.0.1" vendor="Desheng Xu"> 
+        </ExtensionPackage>
+    </ExtensionPackages>
+    <Widgets>
+        <Widget name="histogramchart">
+            <UIResources>
+                <FileResource description="a chart to display histogram data and include indicator for nominal, mean, usl, lsl etc. it may or may not include: cp, cpk, std value." file="histogramchart.ide.js" isDevelopment="true" isRuntime="false" type="JS"/>
+                <FileResource description="a chart to display histogram data and include indicator for nominal, mean, usl, lsl etc. it may or may not include: cp, cpk, std value." file="histogramchart.ide.css" isDevelopment="true" isRuntime="false" type="CSS"/>
+                <FileResource description="a chart to display histogram data and include indicator for nominal, mean, usl, lsl etc. it may or may not include: cp, cpk, std value." file="histogramchart.runtime.js" isDevelopment="false" isRuntime="true" type="JS"/>
+                <FileResource description="a chart to display histogram data and include indicator for nominal, mean, usl, lsl etc. it may or may not include: cp, cpk, std value." file="histogramchart.runtime.css" isDevelopment="false" isRuntime="true" type="CSS"/>
+                <FileResource description="3rd party library." file="3rdpartylibrary/Chart.bundle.min.js" isDevelopment="false" isRuntime="true" type="JS"/>
+            </UIResources>
+        </Widget>
+    </Widgets>
+</Entities>
