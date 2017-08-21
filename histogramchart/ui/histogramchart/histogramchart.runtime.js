@@ -289,7 +289,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 			for(var index=0;index<dataRows.length;index++){
 				dataArray.push(dataRows[index][rawvalue_fieldname]);
 			}
-			TW.log.debug("Data is updated:" + dataArray.length);
+			TW.log.debug("Data is updated with:" + dataArray.length);
 		}
 
 		if (updatePropertyInfo.TargetProperty === 'Title'){
@@ -359,7 +359,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 				calculationResult['mean'],
 				calculationResult['std'],
 				calculationResult['cp'],
-				calculationResult['cp']);
+				calculationResult['cpk']);
 
 			//exportCanvasConfig();
 			if(isError){
@@ -744,7 +744,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 		//calculate bins and counts.
 		var bars = dataArray.length>25? 8: 4;
 		var hit = bars==8? hit8: hit4;	//which hit function will be used.
-		TW.log.debug("bars:"+bars+" hit:"+hit);
+		TW.log.debug("bars value:"+bars);
 
 		//if measurement > 25, then use 8 bars (9 bins)
 		//otherwise, use 4 bars (5 bins)
@@ -781,7 +781,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 			"barpercentage": barpercentage,
 			"bartop": bartop
 		}
-		TW.log.debug("final result from bins calculation:"+JSON.stringify(result));
+		//TW.log.debug("final result from bins calculation:"+JSON.stringify(result));
 		return result;
 	}
 	
