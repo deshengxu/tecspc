@@ -4,7 +4,7 @@
 
 }
 
-.circle {
+.circleold {
   
   border-radius: 50%;
   font-size: 10px;
@@ -14,7 +14,21 @@
   background: blue
 }
 
-.clicked {
+.clickedold {
     text-decoration:underline;
     background: red
+}
+
+.circle {
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  background: #bbb;
+  text-align: center;
+  display: table-cell;
+  vertical-align: middle;
+}
+.clicked {
+  border: 3px solid red;
+  text-decoration:underline;
 }

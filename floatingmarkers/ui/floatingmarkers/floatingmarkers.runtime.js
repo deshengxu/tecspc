@@ -130,10 +130,13 @@ TW.Runtime.Widgets.floatingmarkers= function () {
 		TW.log.warn("done remove clicked class from ExistingElement")
 	}
 
+	function setupSelectedIDValue(selectedID){
+		setupSelectedValue(selectedID,"",0,0);
+	}
 	function setupSelectedValue(selectedID,selectedText,selectedXPos,selectedYPos){
 		//a IDValue is selected, this will update IDValue as source of binding
 		//and trigger event;
-		TW.log.warn("selected value:("+selectedID+")("+selectedText+")("+selectedText+")("+selectedYPos+")");
+		TW.log.warn("selected value:("+selectedID+")("+selectedText+")("+selectedXPos+")("+selectedYPos+")");
 		thisWidget.setProperty("selectedID", selectedID);
 		thisWidget.setProperty("selectedText", selectedText);
 		thisWidget.setProperty("selectedXPos", selectedXPos);

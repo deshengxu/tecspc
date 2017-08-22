@@ -13,6 +13,7 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
 from generate_feature_list import setup_logger
+from helpers import get_upload_commandline_options
 
 def generate_json_body(row):
     number_cols = [
@@ -121,15 +122,16 @@ def is_valid_date(cell_object):
     except:
         return False
 
-def process_onerecord(row):
+def process_onerecord(row, url=None, appKey=None):
     try:
         json_body = generate_json_body(row)
-        url = 'http://52.43.89.161:8080/Thingworx/Things/Oracle12Connection/Services/insert_into_ird'
+        #url = 'http://52.43.89.161:8080/Thingworx/Things/Oracle12Connection/Services/insert_into_ird'
 
         headers = {
             'Content-type': 'application/json',
             'Accept': 'application/json',
-            'appKey': '0abb24ee-49c7-467e-b44e-6b1f09c7c180'
+            #'appKey': '0abb24ee-49c7-467e-b44e-6b1f09c7c180'
+            'appKey': appKey
         }
         
         logger.info("json_body:{}".format(json_body))
@@ -141,16 +143,9 @@ def process_onerecord(row):
         logger.info("exception happenned:{} in row:{}".format(e,row))
 
 
-if __name__=='__main__':
-    # data = [5.907,5.907,5.908,5.908,5.922,5.922,5.914,5.914,5.908,5.908,5.913,5.913,5.912,5.912,
-    # 5.95,5.95,5.905,5.905,5.909,5.909,5.95,5.95,5.926,5.926,5.903,5.916,5.905,5.905,5.895,5.895]
 
-    logger = setup_logger()
-
-    curdir=os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-    
-    datafile=os.path.join(curdir,"..","data","ird_sample.csv")
-    ird_df = pd.read_csv(datafile)
+def uploadOneFile(datafile, url, appKey):
+    ird_df = pd.read_csv(datafile, encoding='latin1')
     
     count=0
     total_ird = len(ird_df)
@@ -166,8 +161,24 @@ if __name__=='__main__':
         #     break;
         #logger.debug("index:{},row:{}".format(index, row))
         if is_valid_date(row[check_col]):
-            process_onerecord(row)
+            process_onerecord(row,url, appKey)
         else:
             logger.info("Created_DT is not a valid date in format m/d/yyyy h24:mi, {}".format(row(check_col)))
 
         row_count += 1
+
+
+if __name__=='__main__':
+    # data = [5.907,5.907,5.908,5.908,5.922,5.922,5.914,5.914,5.908,5.908,5.913,5.913,5.912,5.912,
+    # 5.95,5.95,5.905,5.905,5.909,5.909,5.95,5.95,5.926,5.926,5.903,5.916,5.905,5.905,5.895,5.895]
+
+    logger = setup_logger()
+
+    commandline = get_upload_commandline_options(logger)
+
+    curdir=os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+    datafile=os.path.join(curdir,"..","data",commandline['filename'])
+    if not os.path.exists(datafile):
+        logger.info("File doesn't exist:{}".format(os.path.abspath(datafile)))
+    else:
+        uploadOneFile(datafile, commandline['url'],commandline['appKey'])

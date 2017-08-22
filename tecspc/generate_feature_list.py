@@ -8,6 +8,13 @@ import matplotlib.mlab as mlab
 import os
 import sys
 
+PACKAGE_PARENT = '..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+
+from helpers import get_upload_commandline_options
+
+
 def Cp(mylist, usl, lsl):
     arr = np.array(mylist)
     arr = arr.ravel()
@@ -32,7 +39,7 @@ def get_hist(data, nominal, utl, ltl, bins_integer, normed=True,feature_id='',fi
     weights = np.ones_like(data)/float(len(data))   # to get y axis to total in 1
 
     n, bins_value, patches = plt.hist(data,bins=bins_integer,weights= weights, rwidth = 1.0, normed=0)
-    logger.info("n={}".format(n))   #n should be normalized already.
+    logger.info("mu={},sigma={},n={}".format(mu,sigma,n))   #n should be normalized already.
     #n, bins_value, patches = plt.hist(data,bins=bins_integer, rwidth = 1.0, normed=1)
 
     usl = nominal + utl     # 5.905 + 0.08, upper specification limit
@@ -99,42 +106,50 @@ def get_hist(data, nominal, utl, ltl, bins_integer, normed=True,feature_id='',fi
     plt.axvline(x=nominal,ymax = speclinescale, color = speclinecolor)
     plt.text(nominal,yTop * speclinescale ,'Nominal', fontsize=7)
 
-    # fit curve with existing bins only.
-    x_step = 0.001
-    if (l_bound - r_bound) / x_step < 100:
-        x_step = 0.0001
+    if (not np.isnan(sigma)) and sigma>0.000000001:
+        # fit curve with existing bins only.
+        x_step = 0.001
+        if (l_bound - r_bound) / x_step < 100:
+            x_step = 0.0001
 
-    x = np.arange(l_bound, r_bound,x_step).tolist()
-    y = mlab.normpdf(x,mu,sigma)
-    y_normalized = y * float(max(n))/float(max(y))
-    l = plt.plot(x,y_normalized, 'r--',linewidth=1)
+        x = np.arange(l_bound, r_bound,x_step).tolist()
+        logger.info("mu:{}\t sigma:{} \tlength of x:{}".format(mu,sigma,len(x)))
+        y = mlab.normpdf(x,mu,sigma)
+        y_normalized = y * float(max(n))/float(max(y))
+        l = plt.plot(x,y_normalized, 'r--',linewidth=1)
 
-    # y = mlab.normpdf(bins_value,mu,sigma)
-    # l = plt.plot(bins_value,y, 'r--',linewidth=1)
+        # y = mlab.normpdf(bins_value,mu,sigma)
+        # l = plt.plot(bins_value,y, 'r--',linewidth=1)
 
-    # fit curve with node on screen
-    # fit = stats.norm.pdf(data,mu,sigma) 
-    # plt.plot(data,fit,'-o')
+        # fit curve with node on screen
+        # fit = stats.norm.pdf(data,mu,sigma) 
+        # plt.plot(data,fit,'-o')
 
-    #title = "Total Test:{}, Mean:{:9.5f}, Sigma:{:9.5f}".format(len(data), mu, sigma)
-    title = r'Total:{}, Nominal:{:9.5f},  $\mu={:9.5f}$, $\sigma={:9.5f}$'.format(len(data),nominal, mu,sigma)
-    if suptitle:
-        plt.suptitle(suptitle,fontsize=14,fontweight='bold')
-        #plt.title(suptitle)
+        #title = "Total Test:{}, Mean:{:9.5f}, Sigma:{:9.5f}".format(len(data), mu, sigma)
+        title = r'Total:{}, Nominal:{:9.5f},  $\mu={:9.5f}$, $\sigma={:9.5f}$'.format(len(data),nominal, mu,sigma)
+        if suptitle:
+            plt.suptitle(suptitle,fontsize=14,fontweight='bold')
+            #plt.title(suptitle)
 
-    plt.title(title)
-    #plt.text(r_edge,0,notes, fontsize=7)
+        plt.title(title)
+        #plt.text(r_edge,0,notes, fontsize=7)
 
-    plt.xlabel("{} value distribution".format(feature_id))
-    plt.ylabel("Probability")
+        plt.xlabel("{} value distribution".format(feature_id))
+        plt.ylabel("Probability")
+        
+        # lables = [item.get_text() for item in plt.get_yticklabels()]
+        # print("Labels:{}".format(labels))
+
+        if filename is None:
+            filename = str(uuid.uuid1())+".png"
+
+        plt.savefig(filename)
+    else:
+        logger.info("sigma is NaN or too small, bypass normal curve.")
+        logger.info("Data is:{}".format(data))
+        #input("Press Enter to continue...")
+
     
-    # lables = [item.get_text() for item in plt.get_yticklabels()]
-    # print("Labels:{}".format(labels))
-
-    if filename is None:
-        filename = str(uuid.uuid1())+".png"
-
-    plt.savefig(filename)
     # plt.show()
     plt.clf()
     return (mu,sigma,cp,cpk,ucl,lcl,usl,lsl)
@@ -158,20 +173,9 @@ def setup_logger():
 
     return logger
 
-if __name__=='__main__':
-    # data = [5.907,5.907,5.908,5.908,5.922,5.922,5.914,5.914,5.908,5.908,5.913,5.913,5.912,5.912,
-    # 5.95,5.95,5.905,5.905,5.909,5.909,5.95,5.95,5.926,5.926,5.903,5.916,5.905,5.905,5.895,5.895]
-
-    logger = setup_logger()
-
-    curdir=os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-    png_dir = os.path.join(curdir,"..","png")
-    if not os.path.exists(png_dir):
-        os.makedirs(png_dir)
-
-    datafile=os.path.join(curdir,"..","data","ird_sample.csv")
+def process_one_file(datafile,logger,png_dir):
     feature_list_file = os.path.join(curdir,"..","data","feature_list.csv")
-    ird_df = pd.read_csv(datafile)
+    ird_df = pd.read_csv(datafile, encoding='latin1')
     feature_cols=['TCPN', 'TCPN_REV','INSPECTION_DOCUMENT_NAME','FEATURE_ID','NOMINAL_DIM','LOWER_TOLERANCE_DIM','UPPER_TOLERANCE_DIM','INSPECTION_REVISION_CODE']
     feature_list_df = ((ird_df.drop_duplicates(subset=feature_cols))[feature_cols]).copy()
 
@@ -233,7 +237,7 @@ if __name__=='__main__':
         data = sorted(feature_ird_df.tolist())
         #print(data) 
 
-        if utl and ltl and utl>0 and ltl<0 and nominal:
+        if utl and ltl and utl>=0 and ltl<=0 and nominal:
             #filename = str(uuid.uuid1())+".png"
             filename = "{}_{}_{}_{}_{}_{:0.5f}_{:0.5f}_{:0.5f}.png".format(
                 tcpn,
@@ -270,3 +274,19 @@ if __name__=='__main__':
             logger.info("UTL or LTL or NOMINAL doesn't exist, pass now!")
     
     feature_list_df.to_csv(feature_list_file, index=False)
+
+if __name__=='__main__':
+    # data = [5.907,5.907,5.908,5.908,5.922,5.922,5.914,5.914,5.908,5.908,5.913,5.913,5.912,5.912,
+    # 5.95,5.95,5.905,5.905,5.909,5.909,5.95,5.95,5.926,5.926,5.903,5.916,5.905,5.905,5.895,5.895]
+
+    logger = setup_logger()
+
+    curdir=os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+    png_dir = os.path.join(curdir,"..","png")
+    if not os.path.exists(png_dir):
+        os.makedirs(png_dir)
+
+    commandline= get_upload_commandline_options(logger)
+
+    datafile=os.path.join(curdir,"..","data",commandline['filename'])
+    process_one_file(datafile,logger,png_dir)
