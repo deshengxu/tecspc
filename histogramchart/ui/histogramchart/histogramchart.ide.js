@@ -154,6 +154,24 @@ TW.IDE.Widgets.histogramchart = function () {
 					'isVisible': true,
 					'warnIfNotBoundAsTarget': false
 				},
+                'swtest':{
+                    'description': 'Shapiro-Wilk test result',
+                    'defaultValue':0.0,
+					'baseType':'NUMBER',
+					'isBindingTarget': false,
+					'isBindingSource': true,
+					'isVisible': true,
+					'warnIfNotBoundAsTarget': false
+				},
+                'pvalue':{
+                    'description': 'P-Value',
+                    'defaultValue':0.0,
+					'baseType':'NUMBER',
+					'isBindingTarget': false,
+					'isBindingSource': true,
+					'isVisible': true,
+					'warnIfNotBoundAsTarget': false
+				},
                 'TotalCount':{
                     'description': 'Total count of measurement',
                     'defaultValue':0.0,
