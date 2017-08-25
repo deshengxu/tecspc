@@ -23,7 +23,7 @@
  */
 
 // The inverse of cdf.
-function normalQuantile(p, mu, sigma)
+module.exports.normalQuantile =function(p, mu, sigma)
 {
     var p, q, r, val;
     if (sigma < 0)

@@ -4,6 +4,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 	var canvasConfig;	//all chart data will go to here.
 	var chartObject;	//2d context in canvas for drawing.
 	var rawvalue_fieldname;	//field mapping to raw value from input data.
+	var timestamp_fieldname;
 	var dataArray;	//binding data in raw format
 	var nominal;	//binding nominal data or assigned nominal value
 	var utl; 	//binding utl data or assigned utl value
@@ -15,6 +16,32 @@ TW.Runtime.Widgets.histogramchart= function () {
 	var updatedTotalCount = Number.NaN;
 	var updatedSwtest = Number.NaN;
 	var updatedPvalue = Number.NaN;
+	var hDatasets,cDatasets,qDatasets;	
+	var 		normDataset,		//histogram
+				histogramDataset,	//histogram
+				meanDataset,		//histogram
+				nominalDataset,		//histogram
+				uslDataset,			//histogram
+				lslDataset,			//histogram
+				controlChartDataset,	//control chart plot
+				ccMeanDataset,		//control chart
+				ccNominalDataset,	//control chart
+				ccUslDataset,		//control chart
+				ccLslDataset,		//control chart
+				qqPlotDataset,		//q-q plot
+				qqNormDataset;		//q-q plot
+	var			histogramOptions,
+				controlChartOptions,
+				qqPlotOptions;
+	var minDT,maxDT;		//minimal datetime and maximal datetime for control chart data.
+
+	var chartList={
+		'histogram':'Histogram',
+		'controlchart':'Control Chart',
+		'qqplot': 'Q-Q Plot'
+	};
+	var selectedChart = 'histogram';
+	var preSelectedChart=null;
 
 	var resetUpdatedFigures=function(){
 		updatedMean=Number.NaN;
@@ -29,7 +56,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 	var isFiguresUpdated=function(){
 		return !(isNaN(updatedTotalCount) || 
 			isNaN(updatedMean) || isNaN(updatedStd) || isNaN(updatedCp) || isNaN(updatedCpk));
-	}
+	};
 
 	var setUpdatedFigures=function(thisTotalCount,thisMean, thisStd, thisCp, thisCpk,thisSwtest,thisPvalue){
 		updatedTotalCount = thisTotalCount;
@@ -39,7 +66,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 		updatedCpk = thisCpk;
 		updatedSwtest = thisSwtest;
 		updatedPvalue = thisPvalue;
-	}
+	};
 	//for demo purpose
 	var chartColors = {
 		red: 'rgb(255, 99, 132)',
@@ -71,11 +98,39 @@ TW.Runtime.Widgets.histogramchart= function () {
 		//			'<span class="histogramchart-property">' + this.getProperty('histogramchart Property') + '</span>' +
 		//		'</div>';
 
+		//setup default chart name
+		selectedChart = thisWidget.getProperty('DefaultChart') || 'histogram';
+		// if running as extension, call renderStyles
+		//thisWidget.renderStyles();
+		rawvalue_fieldname = this.getProperty('Raw_Value');
+		timestamp_fieldname = this.getProperty('Timestamp_Field');
+		nominal = this.getProperty("Nominal");	//in case it is assigned
+		utl = this.getProperty("UTL");	//in case it is assigned.
+		ltl = this.getProperty("LTL");	//in case it is assigned.
+		
 		chartTitleTextSizeClass = 'textsize-normal';
 		
 		thisWidget.id = +thisWidget.getProperty('Id');
 		canvasID = thisWidget.jqElementId + "-canvas";
 		windowCanvasName = thisWidget.jqElementId +"_canvas_var";
+
+		// <form name="myForm">
+		// 	<input type="radio" name="myRadios"  value="controlchart" >Control Chart</input>
+		// 	<input type="radio" name="myRadios"  value="histogram" >Histogram</input>
+		// </form>
+		var chartRadioHtml='<form name="' + thisWidget.jqElementId+'-form">';
+		for(var key in chartList){
+			if(chartList.hasOwnProperty(key)){
+				chartRadioHtml += '<input type="radio" name="'+
+								thisWidget.jqElementId +
+								'-radios" value="' + 
+								key + '">' + chartList[key] +
+								'</input>';
+				
+			}
+		}
+		chartRadioHtml += '</form>';
+
 		var html =
 			'<div class="widget-histogramchart histogramchart-content" id="' + thisWidget.jqElementId + '" >' +
 			'<div class="chart-title ' + chartTitleTextSizeClass + '" id="' + thisWidget.jqElementId + '-title" style=" text-align:' + (thisWidget.titleAlignment || 'center') + ';">' +
@@ -106,6 +161,11 @@ TW.Runtime.Widgets.histogramchart= function () {
 					'<td class="figure-pvalue figure-value"><span id="'+thisWidget.jqElementId+'-figure-pvalue-value"></span>' +
 					'<td class="figure-value"><span>    </span></td>'+
 					'</tr>' +
+					'<tr class="buttonrow">'+
+					'<td colspan=14 class="buttoncell">' + chartRadioHtml + '</td>' +
+					'<td><span>    </span></td>'+
+					'</tr>' +
+
 				'</table>' +
 					
 			'</div>' +
@@ -114,12 +174,7 @@ TW.Runtime.Widgets.histogramchart= function () {
 			'</div>' +
 			'</div>';
 
-		// if running as extension, call renderStyles
-		//thisWidget.renderStyles();
-		rawvalue_fieldname = this.getProperty('Raw_Value');
-		nominal = this.getProperty("Nominal");	//in case it is assigned
-		utl = this.getProperty("UTL");	//in case it is assigned.
-		ltl = this.getProperty("LTL");	//in case it is assigned.
+
 
 		//init drawing db structure.
 		thisWidget.buildDefaultConfig();
@@ -160,52 +215,41 @@ TW.Runtime.Widgets.histogramchart= function () {
 		return histogramDataset;
 	}
 
-	this.initVerticalLine = function(label, lineColor){
+	this.initLine = function(label, lineColor){
 		var color = Chart.helpers.color;
-		var vlDataset = {};
-		vlDataset['type'] = 'line';
-		vlDataset['label'] = label;
-		vlDataset['borderColor']= lineColor;
-		vlDataset['backgroundColor'] = color(lineColor).alpha(0.6).rgbString();
-		vlDataset['data'] = [];
-		vlDataset['fill'] = false;
-		vlDataset['lineTension'] = 0.0;
-		vlDataset['radius'] = 0.0;
+		var lDataset = {};
+		lDataset['type'] = 'line';
+		lDataset['label'] = label;
+		lDataset['borderColor']= lineColor;
+		lDataset['backgroundColor'] = color(lineColor).alpha(0.6).rgbString();
+		lDataset['data'] = [];
+		lDataset['fill'] = false;
+		lDataset['lineTension'] = 0.0;
+		lDataset['radius'] = 0.0;
 
-		return vlDataset;
+		return lDataset;
 	}
-	this.buildDefaultConfig = function(){
+
+	this.initControlChartDataset = function(){
 		var color = Chart.helpers.color;
-		//build up default value of config.
-		var normDataset = thisWidget.initNorm();
-		normDataset['data']= [];
-		var histogramDataset = thisWidget.initHistogram();
-		histogramDataset['data'] = [];
-		var meanDataset = thisWidget.initVerticalLine('Mean',chartColors.yellow);
-		meanDataset['data'] = [];
-		var nominalDataset = thisWidget.initVerticalLine('Nominal', chartColors.green);
-		nominalDataset['data'] = [];
-		var uslDataset = thisWidget.initVerticalLine('USL', chartColors.orange);
-		uslDataset['data'] = [];
+		var controlChartDataset = {};
+		controlChartDataset['type'] = 'line';
+		controlChartDataset['label'] = 'Control Chart';
+		controlChartDataset['borderColor']=chartColors.blue;
+		controlChartDataset['backgroundColor'] = color(chartColors.blue).alpha(0.6).rgbString();
+		controlChartDataset['data'] = [];
+		controlChartDataset['fill'] = false;
+		controlChartDataset['hitRadius'] = 0.0;
+		controlChartDataset['radius'] = 0.0;
+		controlChartDataset['lineTension'] = 0.0;
+		controlChartDataset['pointRadius'] = 1.0;
+		controlChartDataset['borderWidth'] = 1.0;	//line width
 		
-		var lslDataset = thisWidget.initVerticalLine('LSL', chartColors.purple);
-		lslDataset['data'] = [];
-				
-		var scatterChartData = {
-			datasets: [normDataset,
-				histogramDataset,
-				meanDataset,
-				nominalDataset,
-				uslDataset,
-				lslDataset
-        	]
-		};
-		
-		canvasConfig = {};
-		canvasConfig['type']= 'line';
-		canvasConfig['data'] = scatterChartData;
-		
-		var options = {};
+		return controlChartDataset;
+	}
+
+	this.initHistogramOptions = function(){
+		var options={};
 		options['title'] = {	//disable title on chart, instead in html.
 			text:'Histogram Chart',
 			display: false,
@@ -247,19 +291,212 @@ TW.Runtime.Widgets.histogramchart= function () {
 				boxWidth: 30,
 				padding: 4
             }
-        }
+		}
 
-		canvasConfig['options'] = options;
+		return options;
+	}
+
+	this.initControlChartOptions=function(){
+		var options={};
+		options['title'] = {	//disable title on chart, instead in html.
+			text:'Control Chart',
+			display: false,
+			position: 'bottom'
+		};
+		options['scales'] = {
+					xAxes: [{
+						time: {
+							unit: 'day'
+                		},
+						id: 'first-x-axis',
+						type: 'time',
+						ticks:{
+							autoSkip:true
+						}
+					}],
+					yAxes: [{
+						ticks: {
+							// max: 1.0,
+							// min: 0.0,
+							// stepSize: 0.05,
+							callback: function(value, index, values) {
+										return Number(value).toFixed(5);
+									}
+							},
+						id: 'first-y-axis',
+                		type: 'linear'
+					}]
+				};
+		options['legend'] = {
+			position: 'right',
+            display: true,
+            labels: {
+				fontColor: 'rgb(10, 10, 10)',
+				fontSize: 10,
+				boxWidth: 30,
+				padding: 4
+            }
+		}
+		return options;
+	}
+
+	this.initQQPlotOptions=function(){
+		var options={};
+		options['title'] = {	//disable title on chart, instead in html.
+			text:'Q-Q Plot',
+			display: false,
+			position: 'bottom'
+		};
+		options['scales'] = {
+					xAxes: [{
+						ticks: {
+							//stepSize: 0.5,
+							callback: function(value, index, values){
+								return Number(value).toFixed(1);
+							}
+						},
+						id: 'first-x-axis',
+                		type: 'linear'
+					}],
+					yAxes: [{
+						ticks: {
+							// max: 0.4,
+							// min: 0.0,
+							// stepSize: 0.05,
+							// callback: function(value, index, values) {
+							// 			return Number(value).toFixed(2);
+							// 		}
+							},
+						id: 'first-y-axis',
+                		type: 'linear'
+					}]
+				};
+		options['legend'] = {
+			position: 'right',
+            display: true,
+            labels: {
+				fontColor: 'rgb(10, 10, 10)',
+				fontSize: 10,
+				boxWidth: 30,
+				padding: 4
+            }
+		}
+		return options;
+	}
+	
+	this.initBubble = function(label, bubbleColor){
+		var color = Chart.helpers.color;
+		var bubbleDataset = {};
+		bubbleDataset['type'] = 'bubble';
+		bubbleDataset['label'] = label;
+		bubbleDataset['borderColor']= bubbleColor;
+		bubbleDataset['backgroundColor'] = color(bubbleColor).alpha(0.6).rgbString();
+		bubbleDataset['data'] = [];
+		bubbleDataset['fill'] = false;
+		//bubbleDataset['lineTension'] = 0.0;
+		bubbleDataset['hoverRadius'] = 1.0;
+
+		return bubbleDataset;
+	};
+
+	this.selectDatasets=function(){
+		// 'histogram':'Histogram',
+		// 'controlchart':'Control Chart',
+		// 'qqplot': 'Q-Q Plot'
+		if(selectedChart==='histogram'){
+			return hDatasets;
+		}
+		if(selectedChart==='controlchart'){
+			return cDatasets;
+		}
+		if(selectedChart==='qqplot'){
+			return qDatasets;
+		}
+	};
+
+	this.selectOptions=function(){
+		if(selectedChart==='histogram'){
+			return histogramOptions;
+		}
+		if(selectedChart==='controlchart'){
+			return controlChartOptions;
+		}
+		if(selectedChart==='qqplot'){
+			return qqPlotOptions;
+		}
+	}
+
+	this.buildDefaultConfig = function(){
+		var color = Chart.helpers.color;
+		//build up default value of config.
+
+		//histogram dataset
+		normDataset = thisWidget.initNorm();
+		histogramDataset = thisWidget.initHistogram();
+		meanDataset = thisWidget.initLine('Mean',chartColors.yellow);
+		nominalDataset = thisWidget.initLine('Nominal', chartColors.green);
+		uslDataset = thisWidget.initLine('USL', chartColors.orange);
+		lslDataset = thisWidget.initLine('LSL', chartColors.purple);
+		
+		//control chart dataset
+		controlChartDataset = thisWidget.initControlChartDataset();
+		ccMeanDataset = thisWidget.initLine('Mean', chartColors.yellow);
+		ccNominalDataset = thisWidget.initLine('Nominal', chartColors.green);
+		ccUslDataset = thisWidget.initLine('USL', chartColors.orange);
+		ccLslDataset = thisWidget.initLine('LSL', chartColors.purple);
+
+		//Q-Q Plot chart dataset
+		qqPlotDataset = thisWidget.initBubble('Q-Q', chartColors.red);
+		qqNormDataset = thisWidget.initLine('Ref', chartColors.green);
+		qqNormDataset['borderWidth'] = 1.0;
+
+		histogramOptions = thisWidget.initHistogramOptions();
+		controlChartOptions = thisWidget.initControlChartOptions();
+		qqPlotOptions = thisWidget.initQQPlotOptions();
+
+		hDatasets = [normDataset,
+				histogramDataset,
+				meanDataset,
+				nominalDataset,
+				uslDataset,
+				lslDataset
+			];
+		cDatasets = [controlChartDataset,
+				ccMeanDataset,
+				ccNominalDataset,
+				ccUslDataset,
+				ccLslDataset	
+			];
+		qDatasets = [qqPlotDataset, qqNormDataset];
+
+		var scatterChartData = {
+			datasets: thisWidget.selectDatasets()
+		};
+		
+		canvasConfig = {};
+		canvasConfig['type']= 'line';
+		canvasConfig['data'] = scatterChartData;
+		
+		canvasConfig['options'] = thisWidget.selectOptions();
 		resetUpdatedFigures();
 		TW.log.debug("canvasConfig is:"+(canvasConfig));
 	};
 
-	exportCanvasConfig=function(){
+	var exportCanvasConfig=function(){
 		for(var index=0;index<canvasConfig['data']['datasets'].length;index++){
 			TW.log.debug("index:"+index+" label:"+canvasConfig['data']['datasets'][index]['label']);
 			TW.log.debug("Data:"+JSON.stringify(canvasConfig['data']['datasets'][index]['data']));
 		}
 		TW.log.debug("Options:"+JSON.stringify(canvasConfig['options']));
+	}
+
+	var exportDatasetsOptions=function(datasets,options){
+		for(var index=0;index<datasets.length;index++){
+			TW.log.debug("index:"+index+" label:"+datasets[index]['label']);
+			TW.log.debug("type:"+datasets[index]['type']);
+			TW.log.debug("Data:"+JSON.stringify(datasets[index]['data']));
+		}
+		TW.log.debug("Options:"+JSON.stringify(options));
 	}
 
 	this.afterRender = function () {
@@ -272,11 +509,52 @@ TW.Runtime.Widgets.histogramchart= function () {
 		// in the mashup builder
 		//valueElem.text(this.getProperty('histogramchart Property'));
 		TW.log.debug("after Render:find Canvas?:"+document.getElementById(canvasID));
-
+		thisWidget.setupInitChart();	//make the default one to be selected.
 		thisWidget.drawChart();
 		TW.log.debug("Windows Canvas Var:"+windowCanvasName+"--canvasID:"+canvasID);
 		//TW.log.debug("CanvasConfig:"+JSON.stringify(canvasConfig));
 	};
+
+	this.setupInitChart=function(){
+		var radios=document[thisWidget.jqElementId+"-form"][thisWidget.jqElementId+"-radios"];
+		if(radios===undefined || radios === null){
+			TW.log.debug("can't find radios object in DOM.");
+
+		}else{
+			for(var index=0;index<radios.length;index++){
+				if(radios[index].value===selectedChart){
+					radios[index].checked=true;
+				}
+				//radios[index].onclick=radioSelected(radios[index].value);
+				radios[index].onclick = function(){
+					if(this===preSelectedChart){
+						TW.log.warn("en, you selected same thing. bye!");
+					}else{
+						preSelectedChart=this;
+						selectedChart=this.value;
+						thisWidget.updateDrawingForSelectedChart();
+					}
+				};
+			}
+		}
+	};
+
+	this.updateDrawingForSelectedChart=function(){
+		TW.log.warn("I'm going to run;"+selectedChart);
+		// thisWidget.updateSelectedChartConfig();
+		// chartObject.update();
+		chartObject = null;	//reset
+		thisWidget.drawChart();
+		TW.log.warn("it's done with:"+selectedChart);
+	};
+
+	thisWidget.updateSelectedChartConfig=function(){
+		//update dataset and data based on selected chart.
+		canvasConfig['data']['datasets']=thisWidget.selectDatasets();
+		canvasConfig['options'] = thisWidget.selectOptions();
+		TW.log.debug("updateSelectedChartConfig:going to export canvasconfig")
+		exportCanvasConfig();
+	}
 
 	this.drawChart=function(){
 		var ctx = document.getElementById(canvasID).getContext("2d");
@@ -284,24 +562,51 @@ TW.Runtime.Widgets.histogramchart= function () {
 
 		//this should be optimized in order to save memory.
 		if(chartObject===undefined || chartObject === null){
+			thisWidget.updateSelectedChartConfig();
 			chartObject = new Chart(ctx, canvasConfig);
 			TW.log.debug("Chart Object created in drawChart:"+ chartObject);
 		}else{
+			thisWidget.updateSelectedChartConfig();
 			chartObject.update();
 			TW.log.debug("Chart Object updated in drawChart:"+ chartObject);
 		}
 		
 		
 	}
+
+	this.processDataRows=function(dataRows){
+		TW.log.debug("Start to process datarows:"+dataRows.length);
+		dataArray = [];
+		controlChartData=[];
+		for(var index=0;index<dataRows.length;index++){
+			dataArray.push(dataRows[index][rawvalue_fieldname]);
+			var point={
+				x:dataRows[index][timestamp_fieldname],
+				y:dataRows[index][rawvalue_fieldname]
+			}
+			controlChartData.push(point);
+		}
+		controlChartDataset['data']=controlChartData;
+		//TW.log.debug("updated control chart dataset:"+JSON.stringify(controlChartDataset));
+
+		if(dataRows.length>0){
+			minDT=dataRows[0][timestamp_fieldname];	//assume first one is the earlest one.
+			maxDT=dataRows[dataRows.length-1][timestamp_fieldname];
+			// scales: {
+            // xAxes: [{
+            //     time: {
+			controlChartOptions['scales']['xAxes']['time']['max']=maxDT;
+			controlChartOptions['scales']['xAxes']['time']['min']=minDT;	
+			//TW.log.debug("control chart options updated:"+JSON.stringify(controlChartOptions));
+		}
+		TW.log.debug("process Datarows done:")
+		exportDatasetsOptions(controlChartDataset,controlChartOptions);
+	}
 	// this is called on your widget anytime bound data changes
 	this.updateProperty = function (updatePropertyInfo) {
 		// TargetProperty tells you which of your bound properties changed
 		if (updatePropertyInfo.TargetProperty === 'Data') {
-			var dataRows = updatePropertyInfo.ActualDataRows;
-			dataArray = [];
-			for(var index=0;index<dataRows.length;index++){
-				dataArray.push(dataRows[index][rawvalue_fieldname]);
-			}
+			thisWidget.processDataRows(updatePropertyInfo.ActualDataRows)
 			TW.log.debug("Data is updated with:" + dataArray.length);
 		}
 
@@ -346,6 +651,12 @@ TW.Runtime.Widgets.histogramchart= function () {
 			if(rawvalue_fieldname===undefined || rawvalue_fieldname===''){
 				//thisWidget.buildDefaultConfig();
 				TW.log.debug("rawvalue_fieldname is not mapped");
+				isError=true;
+			}
+
+			if(timestamp_fieldname===undefined || timestamp_fieldname===''){
+				//thisWidget.buildDefaultConfig();
+				TW.log.debug("timestamp_fieldname is not mapped");
 				isError=true;
 			}
 			
@@ -395,12 +706,16 @@ TW.Runtime.Widgets.histogramchart= function () {
 			if(isError){
 				thisWidget.cleanDefaultConfig(calculationResult);
 			}else{
+				TW.log.debug("Start to setup chart, calculation result:"+JSON.stringify(calculationResult));
 				thisWidget.setupChart(calculationResult);
 			}
 			thisWidget.updateSourcingBindingProperties(calculationResult);
 			//thisWidget.drawChart();
 			//exportCanvasConfig();
-			chartObject.update();
+			// thisWidget.updateSelectedChartConfig();
+			// chartObject.update();
+			chartObject = null;
+			thisWidget.drawChart();
 
 			//add figures
 			thisWidget.drawUpdatedFirgures();
@@ -434,7 +749,8 @@ TW.Runtime.Widgets.histogramchart= function () {
 		thisWidget.setProperty('UCL',calculationResult['ucl']);
 		thisWidget.setProperty('LCL',calculationResult['lcl']);
 		thisWidget.setProperty('TotalCount',calculationResult['count']);
-		
+		thisWidget.setProperty('swtest', calculationResult['swtest']);
+		thisWidget.setProperty('pvalue',calculationResult['pvalue']);
 		TW.log.debug("updateSourcingBindingProperties ended.")
 	};
 
@@ -479,6 +795,30 @@ TW.Runtime.Widgets.histogramchart= function () {
 			calculationResult['lsl'],
 			calculationResult['bartop']
 		);
+		
+		//control chart data has been updated in processdatarows already.
+		var ccMeanData = [
+			{x:minDT,y:calculationResult['mean']},
+			{x:maxDT,y:calculationResult['mean']}
+		]
+		var ccNominalData = [
+			{x:minDT,y:nominal},
+			{x:maxDT,y:nominal}
+		]
+
+		var ccUslData = [
+			{x:minDT,y:calculationResult['usl']},
+			{x:maxDT,y:calculationResult['usl']}
+		]
+		
+		var ccLslData = [
+			{x:minDT,y:calculationResult['lsl']},
+			{x:maxDT,y:calculationResult['lsl']}
+		]
+		
+		var qqPlotData = thisWidget.generateQqPlotData();		//to be updated;
+		var qqNormData = this.generateQqNormData(calculationResult);		//to be updated;
+		TW.log.warn(" entering updateDefaultConfig");
 
 		thisWidget.updateDefaultConfig(
 			normData,
@@ -487,8 +827,51 @@ TW.Runtime.Widgets.histogramchart= function () {
 			nominalData,
 			uslData,
 			lslData,
+			ccMeanData,
+			ccNominalData,
+			ccUslData,
+			ccLslData,
+			qqPlotData,
+			qqNormData,
 			calculationResult
 		);
+	}
+
+	this.generateQqPlotData=function(){
+		//http://www.statisticshowto.com/q-q-plots/
+		//assume dataArray has been sorted already.
+		var segment = 1.0/(dataArray.length+1);
+		var qqPlotData = [];
+		for(var index=0;index<dataArray.length;index++){
+			var point = {
+				x: normalQuantile(segment * (index+1), 0, 1),
+				y: dataArray[index],
+				r: 2.0
+			};
+			qqPlotData.push(point);
+		}
+
+		return qqPlotData;
+	};
+
+	this.generateQqNormData = function(calculationResult){
+		var segment = 1.0/(dataArray.length+1);
+
+		var qqNormData=[];
+		var zig1=normalQuantile(segment, 0, 1);
+		var point1={
+			x: zig1,
+			y: calculationResult['mean'] + zig1 * calculationResult['std']
+		}
+		var zig2 = normalQuantile(segment * dataArray.length, 0, 1);
+		var point2 = {
+			x: zig2,
+			y: calculationResult['mean'] + zig2 * calculationResult['std']
+		}
+		qqNormData.push(point1);
+		qqNormData.push(point2);
+
+		return qqNormData;
 	}
 
 	this.cleanDefaultResult=function(){
@@ -534,6 +917,12 @@ TW.Runtime.Widgets.histogramchart= function () {
 			[],
 			[],
 			[],
+			[],
+			[],
+			[],
+			[],
+			[],
+			[],
 			calculationResult
 		)
 	}
@@ -545,41 +934,108 @@ TW.Runtime.Widgets.histogramchart= function () {
 			nominalData,
 			uslData,
 			lslData,
+			ccMeanData,
+			ccNominalData,
+			ccUslData,
+			ccLslData,
+			qqPlotData,
+			qqNormData,
 			calculationResult
 	){
-		for(var index=0;index<canvasConfig['data']['datasets'].length;index++){
-			var label = canvasConfig['data']['datasets'][index]['label'];
-			TW.log.debug("processing label:"+label);
-			if(label=="Norm"){
-				canvasConfig['data']['datasets'][index]['data'] = normData;
-			}
+		// for(var index=0;index<histogramDataset.length;index++){
+		// 	var label = histogramDataset[index]['label'];
+		// 	TW.log.debug("processing label:"+label);
+		// 	if(label=="Norm"){
+		// 		histogramDataset[index]['data'] = normData;
+		// 	}
 
-			if(label=="Histogram"){
-				canvasConfig['data']['datasets'][index]['data'] = histogramData;
-			}
+		// 	if(label=="Histogram"){
+		// 		histogramDataset[index]['data'] = histogramData;
+		// 	}
 			
-			if(label=="Mean"){
-				canvasConfig['data']['datasets'][index]['data'] = meanData;
-			}
-			if(label=="Nominal"){
-				canvasConfig['data']['datasets'][index]['data'] = nominalData;
-			}
-			if(label=="USL"){
-				canvasConfig['data']['datasets'][index]['data'] = uslData;
-			}
-			if(label=="LSL"){
-				canvasConfig['data']['datasets'][index]['data'] = lslData;
-			}
-			
-		}
-		canvasConfig['options']['scales']['xAxes'][0]['ticks']['min']=calculationResult['edgemin'];
-		canvasConfig['options']['scales']['xAxes'][0]['ticks']['max']=calculationResult['edgemax'];
-		canvasConfig['options']['scales']['yAxes'][0]['ticks']['max']=roundupPercentage(
+		// 	if(label=="Mean"){
+		// 		histogramDataset[index]['data'] = meanData;
+		// 	}
+		// 	if(label=="Nominal"){
+		// 		histogramDataset[index]['data'] = nominalData;
+		// 	}
+		// 	if(label=="USL"){
+		// 		histogramDataset[index]['data'] = uslData;
+		// 	}
+		// 	if(label=="LSL"){
+		// 		histogramDataset[index]['data'] = lslData;
+		// 	}
+		// }
+		normDataset['data']=normData;
+		histogramDataset['data']=histogramData;
+		meanDataset['data']=meanData;
+		nominalDataset['data']=nominalData;
+		uslDataset['data']=uslData;
+		lslDataset['data']=lslData;
+		histogramOptions['scales']['xAxes'][0]['ticks']['min']=calculationResult['edgemin'];
+		histogramOptions['scales']['xAxes'][0]['ticks']['max']=calculationResult['edgemax'];
+		histogramOptions['scales']['yAxes'][0]['ticks']['max']=roundupPercentage(
 			calculationResult['bartop'] * 1.10);
+		TW.log.debug("export Histogram data:");
+		exportDatasetsOptions(hDatasets,histogramOptions);
 		
+		//control chart
+		// for(var index=0;index<controlChartDataset.length;index++){
+		// 	var label = controlChartDataset[index]['label'];
+		// 	TW.log.debug("processing label:"+label);
+		// 	if(label=="Mean"){
+		// 		controlChartDataset[index]['data'] = ccMeanData;
+		// 	}
+		// 	if(label=="Nominal"){
+		// 		controlChartDataset[index]['data'] = ccNominalData;
+		// 	}
+		// 	if(label=="USL"){
+		// 		controlChartDataset[index]['data'] = ccUslData;
+		// 	}
+		// 	if(label=="LSL"){
+		// 		controlChartDataset[index]['data'] = ccLslData;
+		// 	}	
+		// }
+		ccMeanDataset['data']=ccMeanData;
+		ccNominalDataset['data']=ccNominalData;
+		ccUslDataset['data'] = ccUslData;
+		ccLslDataset['data'] = ccLslData;
+		controlChartOptions['scales']['yAxes'][0]['ticks']['max']=calculationResult['edgemax'];
+		controlChartOptions['scales']['yAxes'][0]['ticks']['min']=calculationResult['edgemin'];
+		controlChartOptions['scales']['yAxes'][0]['ticks']['stepSize']=roundStepSize(
+			calculationResult['edgemax']- calculationResult['edgemin']
+		);
+
+		TW.log.debug("export control chart data:");
+		exportDatasetsOptions(cDatasets,controlChartOptions)
+
+		qqPlotDataset['data'] = qqPlotData;
+		qqNormDataset['data'] = qqNormData;
+		if(qqPlotDataset.length>0){
+			qqPlotOptions['scales']['yAxes'][0]['ticks']['min'] = qqPlotData[0][y] - 0.1;
+			qqPlotOptions['scales']['yAxes'][0]['ticks']['max'] = qqPlotData[qqPlotData.length-1][y] + 0.1;
+
+			qqPlotOptions['scales']['xAxes'][0]['ticks']['min'] = qqPlotData[0][x] - 0.1;
+			qqPlotOptions['scales']['xAxes'][0]['ticks']['max'] = qqPlotData[qqPlotData.length-1][x] + 0.1;
+		}
+		TW.log.debug("export Q-Q Plot data:");
+		exportDatasetsOptions(qDatasets,qqPlotOptions);
 	}
 
-	roundupPercentage=function(topValue){
+	var roundStepSize = function(totalGap){
+		var step = totalGap/5;	//5-7 ticks in total
+		//if step > 0, then return round one.
+		//otherwise, * 10 until it is >0,
+		for(var index=0;index<5;index++){
+			if(step>1.0){
+				return Math.floor(step)/Math.pow(10,index);
+			}
+			step *= 10;
+		}
+		return 0.00001;
+	}
+
+	var roundupPercentage=function(topValue){
 		//round up to next level of percentage to aboiv line is too close
 		//0.03 -> 0.05, 0.05->0.05
 		var returnValue = (Math.ceil(topValue * 20.0) / 20.0).toFixed(2);

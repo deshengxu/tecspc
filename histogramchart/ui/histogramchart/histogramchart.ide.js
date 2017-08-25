@@ -55,6 +55,13 @@ TW.IDE.Widgets.histogramchart = function () {
                     'isBindingTarget': false,
                     'isVisible': true
 				},
+				'Timestamp_Field': {
+                    'description': 'Field that identifies timestamp value for control chart.',
+                    'baseType': 'FIELDNAME',
+                    'sourcePropertyName': 'Data',
+                    'isBindingTarget': false,
+                    'isVisible': true
+				},
 				'Nominal':{
                     'description': 'Nominal Value',
                     'defaultValue':0.0,
@@ -180,6 +187,15 @@ TW.IDE.Widgets.histogramchart = function () {
 					'isBindingSource': true,
 					'isVisible': true,
 					'warnIfNotBoundAsTarget': false
+				},
+				'DefaultChart': {
+                    'baseType': 'STRING',
+                    'defaultValue': 'histogram',
+                    'selectOptions': [
+                        { value: 'histogram', text: 'Histogram' },
+                        { value: 'controlchart', text: 'Control Chart' },
+                        { value: 'qqplot', text: 'Q-Q Plot' }
+                    ]
 				},
 				'Width': {
                     'defaultValue': 640
